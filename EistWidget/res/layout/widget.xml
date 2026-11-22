@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@android:id/background"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:padding="8dp"
+    android:background="@drawable/widget_bg">
+
+    <ImageView
+        android:id="@+id/cover"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:adjustViewBounds="true"
+        android:scaleType="fitCenter"
+        android:background="@drawable/cover_bg"
+        android:clipToOutline="true"
+        android:contentDescription="@string/open_eist"
+        android:src="@mipmap/ic_launcher"/>
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:layout_marginStart="10dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:singleLine="true"
+            android:ellipsize="end"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:text="Eist"/>
+
+        <TextView
+            android:id="@+id/subtitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:singleLine="true"
+            android:ellipsize="end"
+            android:textColor="#9AA3B2"
+            android:textSize="11sp"
+            android:text="Not playing"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:gravity="center">
+
+            <FrameLayout
+                android:id="@+id/back"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:contentDescription="@string/skip_back">
+                <ImageView
+                    android:id="@+id/back_icon"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:padding="2dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_skip_back"/>
+                <TextView
+                    android:id="@+id/back_label"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:paddingTop="2dp"
+                    android:textColor="#E5E7EB"
+                    android:textSize="9sp"
+                    android:textStyle="bold"
+                    android:text="10"/>
+            </FrameLayout>
+
+            <ImageView
+                android:id="@+id/play"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:scaleType="fitCenter"
+                android:contentDescription="@string/play_pause"
+                android:src="@drawable/ic_play"/>
+
+            <FrameLayout
+                android:id="@+id/forward"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:contentDescription="@string/skip_forward">
+                <ImageView
+                    android:id="@+id/forward_icon"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:padding="2dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_skip_forward"/>
+                <TextView
+                    android:id="@+id/forward_label"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:paddingTop="2dp"
+                    android:textColor="#E5E7EB"
+                    android:textSize="9sp"
+                    android:textStyle="bold"
+                    android:text="10"/>
+            </FrameLayout>
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

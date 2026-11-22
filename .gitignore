@@ -1,0 +1,13 @@
+.DS_Store
+build/
+
+# Signing keys and passwords never go in the repo. Back them up somewhere safe:
+# app updates must be signed with the same key.
+*.keystore
+*.jks
+.signing-pass
+
+# Vendor app analysis (decompiled third-party code, not ours to publish)
+DazzleBright/decompiled/
+DazzleBright/native/
+DazzleBright/logs/

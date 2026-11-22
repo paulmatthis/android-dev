@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Eist Controls</string>
+    <string name="widget_name">Eist player</string>
+    <string name="widget_description">Cover, play/pause, and skip buttons for the Eist reader</string>
+    <string name="open_eist">Open Eist player</string>
+    <string name="play_pause">Play or pause</string>
+    <string name="skip_back">Skip back</string>
+    <string name="skip_forward">Skip forward</string>
+</resources>

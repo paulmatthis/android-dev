@@ -1,0 +1,3 @@
+[submodule "WordGuess"]
+	path = WordGuess
+	url = https://github.com/paulmatthis/wordguess.git
