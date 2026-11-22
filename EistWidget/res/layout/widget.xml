@@ -64,7 +64,7 @@
                     android:id="@+id/back_icon"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:padding="2dp"
+                    android:padding="7dp"
                     android:scaleType="fitCenter"
                     android:src="@drawable/ic_skip_back"/>
                 <TextView
@@ -74,8 +74,8 @@
                     android:gravity="center"
                     android:paddingTop="2dp"
                     android:textColor="#E5E7EB"
-                    android:textSize="9sp"
-                    android:textStyle="bold"
+                    android:textSize="8sp"
+                    android:fontFamily="sans-serif-medium"
                     android:text="10"/>
             </FrameLayout>
 
@@ -98,7 +98,7 @@
                     android:id="@+id/forward_icon"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:padding="2dp"
+                    android:padding="7dp"
                     android:scaleType="fitCenter"
                     android:src="@drawable/ic_skip_forward"/>
                 <TextView
@@ -108,8 +108,8 @@
                     android:gravity="center"
                     android:paddingTop="2dp"
                     android:textColor="#E5E7EB"
-                    android:textSize="9sp"
-                    android:textStyle="bold"
+                    android:textSize="8sp"
+                    android:fontFamily="sans-serif-medium"
                     android:text="10"/>
             </FrameLayout>
         </LinearLayout>
