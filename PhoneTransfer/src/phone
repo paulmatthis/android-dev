@@ -1,0 +1,99 @@
+#!/bin/zsh
+# phone — easy file transfer between this Mac and an Android phone over USB (adb).
+#
+#   phone send FILE...        copy files/folders to the phone's Download/FromMac folder
+#   phone get                 copy new photos, screenshots, recordings & downloads from the phone
+#                             (everything since the last 'get'; first run = last 7 days)
+#                             into ~/Downloads/FromPhone
+#   phone get --days N        same, but everything from the last N days
+#   phone ls [PATH]           list a folder on the phone (default: /sdcard)
+#   phone pull PATH...        copy specific phone paths into ~/Downloads/FromPhone
+#   phone open                open ~/Downloads/FromPhone in Finder
+
+ADB=/opt/homebrew/bin/adb
+PHONE_DEST=/sdcard/Download/FromMac
+MAC_DEST="$HOME/Downloads/FromPhone"
+STAMP="$HOME/.phone-last-get"
+SOURCES=(/sdcard/DCIM/Camera /sdcard/Pictures/Screenshots /sdcard/Movies /sdcard/Recordings /sdcard/Download)
+
+die() { print -u2 "phone: $*"; exit 1; }
+
+check_device() {
+  "$ADB" start-server >/dev/null 2>&1
+  local state
+  state=$("$ADB" get-state 2>&1)
+  case "$state" in
+    device) return 0 ;;
+    *unauthorized*) die "phone is connected but not authorized. Unlock it and tap 'Allow' on the USB debugging prompt (tick 'Always allow')." ;;
+    *) die "no phone found. Plug it in via USB, unlock it, and make sure USB debugging is on." ;;
+  esac
+}
+
+cmd_send() {
+  (( $# )) || die "usage: phone send FILE..."
+  check_device
+  "$ADB" shell mkdir -p "$PHONE_DEST"
+  local f ok=0
+  for f in "$@"; do
+    [[ -e "$f" ]] || { print -u2 "skip (not found): $f"; continue; }
+    print "→ $f"
+    if "$ADB" push "$f" "$PHONE_DEST/" >/dev/null 2>&1; then
+      ok=$((ok+1))
+      # make the phone's gallery/file apps notice it
+      "$ADB" shell am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE \
+        -d "file://$PHONE_DEST/${f:t}" >/dev/null 2>&1
+    else
+      print -u2 "failed: $f"
+    fi
+  done
+  print "Sent $ok item(s) to phone: Download/FromMac"
+}
+
+cmd_get() {
+  local days=""
+  [[ "$1" == "--days" ]] && days="$2"
+  check_device
+  mkdir -p "$MAC_DEST"
+  local since_min
+  if [[ -n "$days" ]]; then
+    since_min=$(( days * 1440 ))
+  elif [[ -f "$STAMP" ]]; then
+    since_min=$(( ( $(date +%s) - $(<"$STAMP") ) / 60 + 1 ))
+  else
+    since_min=$(( 7 * 1440 ))
+  fi
+  local now=$(date +%s) count=0 src file
+  for src in $SOURCES; do
+    "$ADB" shell "[ -d '$src' ]" 2>/dev/null || continue
+    # skip the folder we send *to*, so files don't bounce back
+    "$ADB" shell "find '$src' -type f -mmin -$since_min ! -path '$PHONE_DEST/*' ! -name '.*'" 2>/dev/null \
+      | tr -d '\r' | while IFS= read -r file; do
+          [[ -n "$file" ]] || continue
+          [[ -e "$MAC_DEST/${file:t}" ]] && continue
+          print "← ${file#/sdcard/}"
+          "$ADB" pull -a "$file" "$MAC_DEST/" >/dev/null 2>&1 && count=$((count+1))
+        done
+  done
+  print "$now" > "$STAMP"
+  print "Copied $count new file(s) to $MAC_DEST"
+}
+
+cmd_ls()   { check_device; "$ADB" shell ls -la "${1:-/sdcard}"; }
+
+cmd_pull() {
+  (( $# )) || die "usage: phone pull PATH..."
+  check_device; mkdir -p "$MAC_DEST"
+  local p; for p in "$@"; do
+    [[ "$p" == /* ]] || p="/sdcard/$p"
+    "$ADB" pull -a "$p" "$MAC_DEST/"
+  done
+}
+
+case "$1" in
+  send) shift; cmd_send "$@" ;;
+  get)  shift; cmd_get "$@" ;;
+  ls)   shift; cmd_ls "$@" ;;
+  pull) shift; cmd_pull "$@" ;;
+  open) mkdir -p "$MAC_DEST"; open "$MAC_DEST" ;;
+  *)    sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//' ;;
+esac

@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phone Transfer</title>
+<style>
+:root{
+  --bg:#ffffff; --panel:#f5f5f7; --line:#e3e3e8; --text:#1d1d1f; --muted:#6e6e73;
+  --accent:#0a66ff; --accent-soft:#e6efff; --hover:#f2f4f8; --sel:#d6e4ff; --danger:#c62828; --ok:#1b7f3b; --mark:#ffe58a;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#1c1c1e; --panel:#252528; --line:#3a3a3e; --text:#f2f2f7; --muted:#9a9aa1;
+    --accent:#4c8dff; --accent-soft:#22324f; --hover:#2a2a2e; --sel:#26406b; --danger:#ff6b6b; --ok:#5fd38a; --mark:#7a6200; }
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);overflow:hidden;
+  font:13px/1.35 -apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",sans-serif}
+button,select{font:inherit;color:inherit;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:4px 9px;cursor:pointer}
+button:hover,select:hover{border-color:var(--muted)}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:500}
+button:disabled{opacity:.4;cursor:default}
+.app{display:flex;flex-direction:column;height:100vh}
+header{display:flex;align-items:center;gap:12px;padding:7px 12px;border-bottom:1px solid var(--line);background:var(--panel)}
+header b{font-size:14px}
+header .sp{flex:1}
+header label{display:flex;gap:5px;align-items:center;color:var(--muted)}
+.panes{flex:1;display:grid;grid-template-columns:1fr 1fr;min-height:0}
+.pane{display:flex;flex-direction:column;min-width:0;min-height:0;border-right:1px solid var(--line)}
+.pane:last-child{border-right:0}
+.pane.active .ptitle{color:var(--accent)}
+.ptop{display:flex;align-items:center;gap:6px;padding:8px 10px 6px;flex-wrap:wrap}
+.ptitle{font-weight:600;font-size:14px;margin-right:4px;white-space:nowrap}
+.ptitle .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;background:var(--muted)}
+.ptitle .dot.ok{background:var(--ok)} .ptitle .dot.bad{background:var(--danger)}
+.nav button{padding:3px 8px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{border:0;border-radius:0;padding:3px 9px}
+.seg button.on{background:var(--accent-soft);color:var(--accent)}
+.grow{flex:1}
+.prow{display:flex;align-items:center;gap:6px;padding:0 10px 8px}
+.crumbs{flex:1;min-width:0;display:flex;align-items:center;gap:1px;white-space:nowrap;overflow:hidden;color:var(--muted)}
+.crumbs a{cursor:pointer;padding:2px 4px;border-radius:4px;color:var(--text)} .crumbs a:hover{background:var(--hover)}
+.search{display:flex;align-items:center;gap:4px;width:46%;min-width:180px;border:1px solid var(--line);border-radius:7px;padding:0 8px;background:var(--bg)}
+.search:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.search input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:var(--text);font:inherit;padding:5px 0}
+.search select{border:0;padding:2px;color:var(--muted);background:transparent}
+.body{flex:1;overflow:auto;position:relative;border-top:1px solid var(--line)}
+.body.droptarget{outline:3px dashed var(--accent);outline-offset:-3px;background:var(--accent-soft)}
+table{width:100%;border-collapse:collapse;table-layout:fixed}
+th{position:sticky;top:0;background:var(--bg);text-align:left;font-weight:500;color:var(--muted);border-bottom:1px solid var(--line);
+  padding:5px 8px;cursor:pointer;user-select:none;white-space:nowrap;z-index:1}
+th:hover,th.on{color:var(--text)}
+td{padding:3px 8px;border-bottom:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+tr.row:hover{background:var(--hover)} .sel{background:var(--sel)!important}
+.c-size{width:84px;text-align:right} .c-date{width:140px} .c-folder{width:30%}
+td.c-size{text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)} td.c-date,td.c-folder{color:var(--muted)}
+td.c-folder a{cursor:pointer} td.c-folder a:hover{text-decoration:underline}
+.nm{display:flex;align-items:center;gap:7px;min-width:0} .nm span{overflow:hidden;text-overflow:ellipsis}
+.ic{flex:none;width:24px;height:24px;border-radius:4px;display:grid;place-items:center;font-size:15px;overflow:hidden}
+.ic img{width:100%;height:100%;object-fit:cover}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:4px;padding:10px}
+.tile{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 4px;border-radius:8px;cursor:default;text-align:center;min-width:0}
+.tile:hover{background:var(--hover)}
+.tile .ic{width:76px;height:76px;font-size:44px;border-radius:6px}
+.tile .tn{font-size:12px;line-height:1.25;max-width:100%;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-word}
+.tile .tf{font-size:11px;color:var(--muted);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+mark{background:var(--mark);color:inherit;border-radius:2px}
+.msg{padding:30px;text-align:center;color:var(--muted)}
+.more{padding:10px;text-align:center}
+.pfoot{display:flex;align-items:center;gap:8px;padding:7px 10px;border-top:1px solid var(--line);background:var(--panel)}
+.pfoot .info{flex:1;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.toast{position:fixed;left:50%;bottom:56px;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:9px 14px;border-radius:8px;
+  max-width:560px;box-shadow:0 6px 20px rgba(0,0,0,.25);z-index:20;display:none;white-space:pre-line}
+.toast.show{display:block}
+@media (max-width:820px){.panes{grid-template-columns:1fr;grid-template-rows:1fr 1fr}.pane{border-right:0;border-bottom:1px solid var(--line)}.c-date,.c-folder{display:none}.search{width:100%}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <b>Phone Transfer</b>
+    <span class="sp"></span>
+    <label><input type="checkbox" id="thumbs" checked> Thumbnails</label>
+    <label><input type="checkbox" id="hidden"> Hidden files</label>
+    <button id="quit" title="Stop Phone Transfer">⏻ Quit</button>
+  </header>
+  <div class="panes">
+    <section class="pane" id="mac"></section>
+    <section class="pane" id="phone"></section>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<template id="paneT">
+  <div class="ptop">
+    <span class="ptitle"></span>
+    <span class="nav"><button data-a="back" title="Back">‹</button> <button data-a="up" title="Enclosing folder (⌘↑)">↑</button></span>
+    <select data-a="places" title="Go to"></select>
+    <span class="grow"></span>
+    <select data-a="type" title="Show">
+      <option value="all">All kinds</option><option value="photo">Photos</option><option value="video">Videos</option>
+      <option value="audio">Audio</option><option value="doc">Documents</option><option value="dir">Folders</option>
+    </select>
+    <select data-a="sort" title="Sort by">
+      <option value="name">Name</option><option value="date">Date modified</option><option value="size">Size</option><option value="kind">Kind</option>
+    </select>
+    <div class="seg"><button data-v="icons" title="Icons">▦ Icons</button><button data-v="list" title="List">☰ List</button></div>
+    <button data-a="refresh" title="Refresh">↻</button>
+  </div>
+  <div class="prow">
+    <div class="crumbs"></div>
+    <div class="search"><span>🔍</span><input type="search" spellcheck="false" autocomplete="off"><select data-a="scope"></select></div>
+  </div>
+  <div class="body"></div>
+  <div class="pfoot"><span class="info"></span><button class="primary" data-a="copy" disabled></button></div>
+</template>
+
+<script>
+const TOKEN = "__TOKEN__", PROOT = "/sdcard";
+const $ = id => document.getElementById(id);
+const api = (path, opts={}) => fetch(path + (path.includes("?") ? "&" : "?") + "t=" + TOKEN, {...opts, headers:{"X-Token":TOKEN, ...(opts.headers||{})}});
+const post = (path, body) => api(path, {method:"POST", body:JSON.stringify(body)}).then(r => r.json());
+const ls = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch(e) { return null; } };
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const base = p => p.slice(p.lastIndexOf("/") + 1);
+const parentOf = p => p.slice(0, p.lastIndexOf("/")) || "/";
+const ext = p => { const n = base(p), i = n.lastIndexOf("."); return i > 0 ? n.slice(i + 1).toLowerCase() : ""; };
+const TYPES = {photo:"jpg jpeg png gif webp heic heif bmp dng raw svg tif tiff", video:"mp4 mov mkv webm 3gp avi m4v",
+  audio:"mp3 m4a aac wav ogg opus flac amr aiff", doc:"pdf doc docx xls xlsx ppt pptx pages numbers key txt csv md rtf odt ods epub json html zip apk dmg"};
+for (const k in TYPES) TYPES[k] = new Set(TYPES[k].split(" "));
+const kindOf = e => { if (e.d) return "dir"; const x = ext(e.p); for (const k in TYPES) if (TYPES[k].has(x)) return k; return "other"; };
+const ICON = {photo:"🖼️", video:"🎬", audio:"🎵", doc:"📄", dir:"📁", other:"📄"};
+const THUMB = new Set(["jpg","jpeg","png","gif","webp","heic","heif","bmp","tif","tiff"]);
+const fmtSize = b => { if (b < 1024) return b + " B"; const u = ["KB","MB","GB","TB"]; let i = -1; do { b /= 1024; i++; } while (b >= 1024 && i < 3); return b.toFixed(b < 10 ? 1 : 0) + " " + u[i]; };
+const fmtDate = s => { const d = new Date(s * 1000); return d.toDateString() === new Date().toDateString()
+  ? "Today " + d.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"})
+  : d.toLocaleDateString([], {year:"numeric", month:"short", day:"numeric"}) + ", " + d.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"}); };
+function toast(m, ms=4000){ const t = $("toast"); t.textContent = m; t.classList.add("show"); clearTimeout(t._h); if (ms) t._h = setTimeout(() => t.classList.remove("show"), ms); }
+function highlight(name, terms){
+  if (!terms.length) return esc(name);
+  const low = name.toLowerCase(), on = new Array(name.length).fill(false);
+  for (const t of terms){ let i = low.indexOf(t); while (i >= 0){ for (let j = i; j < i + t.length; j++) on[j] = true; i = low.indexOf(t, i + 1); } }
+  let out = "", m = false;
+  for (let i = 0; i < name.length; i++){ if (on[i] !== m){ out += on[i] ? "<mark>" : "</mark>"; m = on[i]; } out += esc(name[i]); }
+  return out + (m ? "</mark>" : "");
+}
+function prep(e){ e.n = base(e.p); e.l = e.n.toLowerCase(); e.k = kindOf(e); e.par = parentOf(e.p); return e; }
+
+// ---------- phone index (whole phone, searched locally)
+const phone = {entries: [], byDir: new Map(), dirs: new Set([PROOT]), name: "Phone", ok: false};
+function indexPhone(list){
+  phone.entries = list.map(prep); phone.byDir = new Map(); phone.dirs = new Set([PROOT]);
+  for (const e of phone.entries){ if (e.d) phone.dirs.add(e.p); if (!phone.byDir.has(e.par)) phone.byDir.set(e.par, []); phone.byDir.get(e.par).push(e); }
+  for (const e of phone.entries) if (e.d) e.count = (phone.byDir.get(e.p) || []).length;
+}
+
+let HOME = "";
+let activePane = null;
+
+class Pane {
+  constructor(side){
+    this.side = side; this.el = $(side); this.isPhone = side === "phone";
+    this.el.append($("paneT").content.cloneNode(true));
+    this.q = s => this.el.querySelector(s);
+    this.cwd = ""; this.history = []; this.query = ""; this.kind = "all";
+    this.view = ls(side + ".view") || "list";
+    this.sort = JSON.parse(ls(side + ".sort") || '{"k":"name","dir":1}');
+    this.selected = new Set(); this.lastClick = -1; this.shown = []; this.limit = 500;
+    this.macEntries = []; this.macSearch = null; this.error = "";
+    this.wire();
+  }
+  get root(){ return this.isPhone ? PROOT : "/"; }
+  get other(){ return this.isPhone ? panes.mac : panes.phone; }
+  get searching(){ return this.query.trim().length > 0; }
+  label(p){ if (this.isPhone) return p === PROOT ? "Phone" : p.slice(PROOT.length + 1);
+    return HOME && p.startsWith(HOME) ? "~" + p.slice(HOME.length) : p; }
+
+  wire(){
+    const q = this.q;
+    q(".ptitle").innerHTML = this.isPhone ? '<span class="dot"></span><span class="pname">Phone</span>' : "💻 This Mac";
+    q("[data-a=scope]").innerHTML = this.isPhone
+      ? '<option value="all">Whole phone</option><option value="here">This folder</option>'
+      : '<option value="here">This folder</option><option value="home">Home</option>';
+    q("input[type=search]").placeholder = this.isPhone ? "Search phone…" : "Search Mac…";
+    q("[data-a=copy]").textContent = this.isPhone ? "◀ Copy to Mac" : "Copy to Phone ▶";
+    q("[data-a=sort]").value = this.sort.k;
+    this.el.addEventListener("mousedown", () => this.activate());
+    this.el.querySelectorAll(".seg button").forEach(b => b.onclick = () => { this.view = b.dataset.v; ls(this.side + ".view", this.view); this.render(); });
+    q("[data-a=back]").onclick = () => { const p = this.history.pop(); if (p) this.go(p, false); };
+    q("[data-a=up]").onclick = () => this.up();
+    q("[data-a=places]").onchange = e => { if (e.target.value) this.go(e.target.value); e.target.value = ""; };
+    q("[data-a=type]").onchange = e => { this.kind = e.target.value; this.limit = 500; this.render(); };
+    q("[data-a=sort]").onchange = e => this.setSort(e.target.value, true);
+    q("[data-a=refresh]").onclick = () => this.refresh(true);
+    q("[data-a=copy]").onclick = () => this.copyAcross([...this.selected], this.other.cwd);
+    q("[data-a=scope]").onchange = () => this.runSearch();
+    let t; q("input[type=search]").addEventListener("input", e => { clearTimeout(t); t = setTimeout(() => { this.query = e.target.value; this.limit = 500; this.runSearch(); }, this.isPhone ? 60 : 250); });
+    q("input[type=search]").addEventListener("keydown", e => { if (e.key === "Escape"){ e.target.value = ""; this.query = ""; this.runSearch(); e.stopPropagation(); } });
+    const body = q(".body");
+    body.addEventListener("click", e => this.onClick(e));
+    body.addEventListener("dragstart", e => this.onDragStart(e));
+    body.addEventListener("dragover", e => this.onDragOver(e));
+    body.addEventListener("dragleave", e => { if (!body.contains(e.relatedTarget)) body.classList.remove("droptarget"); });
+    body.addEventListener("drop", e => this.onDrop(e));
+    this.el.querySelector(".crumbs").addEventListener("click", e => { const a = e.target.closest("a[data-dir]"); if (a) this.go(a.dataset.dir); });
+  }
+  activate(){ activePane = this; document.querySelectorAll(".pane").forEach(p => p.classList.toggle("active", p === this.el)); }
+
+  setPlaces(){
+    const P = this.isPhone
+      ? [["Phone storage", PROOT], ["Camera", PROOT + "/DCIM/Camera"], ["Screenshots", PROOT + "/Pictures/Screenshots"], ["Pictures", PROOT + "/Pictures"],
+         ["Download", PROOT + "/Download"], ["Documents", PROOT + "/Documents"], ["Movies", PROOT + "/Movies"], ["Recordings", PROOT + "/Recordings"],
+         ["Music", PROOT + "/Music"], ["WhatsApp media", PROOT + "/Android/media/com.whatsapp/WhatsApp/Media"]]
+      : [["Home", HOME], ["Desktop", HOME + "/Desktop"], ["Documents", HOME + "/Documents"], ["Downloads", HOME + "/Downloads"],
+         ["Pictures", HOME + "/Pictures"], ["Movies", HOME + "/Movies"], ["Music", HOME + "/Music"], ["FromPhone", HOME + "/Downloads/FromPhone"]];
+    this.q("[data-a=places]").innerHTML = '<option value="">Go to…</option>' + P.map(([n, p]) => `<option value="${esc(p)}">${esc(n)}</option>`).join("");
+  }
+
+  async go(dir, push=true){
+    if (push && this.cwd && this.cwd !== dir) this.history.push(this.cwd);
+    this.cwd = dir; ls(this.side + ".cwd", dir);
+    this.query = ""; this.q("input[type=search]").value = ""; this.macSearch = null;
+    this.selected.clear(); this.lastClick = -1; this.limit = 500;
+    if (!this.isPhone) await this.loadMac();
+    this.render(); this.q(".body").scrollTop = 0;
+  }
+  up(){ if (this.cwd !== this.root) this.go(parentOf(this.cwd) || this.root); }
+  async loadMac(){
+    const r = await (await api("/api/mac/list?dir=" + encodeURIComponent(this.cwd))).json();
+    this.error = r.error || ""; this.macEntries = r.entries.map(prep);
+  }
+  async refresh(hard){
+    if (this.isPhone){ await loadPhone(hard); }
+    else { await this.loadMac(); if (this.searching) await this.runSearch(); }
+    this.render();
+  }
+  async runSearch(){
+    if (!this.isPhone && this.searching){
+      const scope = this.q("[data-a=scope]").value === "home" ? HOME : this.cwd;
+      this.macSearch = "loading"; this.render();
+      const want = this.query;
+      const r = await (await api(`/api/mac/search?dir=${encodeURIComponent(scope)}&q=${encodeURIComponent(want)}`)).json();
+      if (want !== this.query) return;
+      this.macSearch = r.entries.map(prep);
+    }
+    this.selected.clear(); this.render();
+  }
+  setSort(k, fromMenu){
+    if (this.sort.k === k && !fromMenu) this.sort.dir *= -1;
+    else { this.sort.k = k; this.sort.dir = (k === "date" || k === "size") ? -1 : 1; }
+    ls(this.side + ".sort", JSON.stringify(this.sort)); this.q("[data-a=sort]").value = k; this.render();
+  }
+
+  compute(){
+    const terms = this.query.toLowerCase().split(/\s+/).filter(Boolean);
+    let list;
+    if (this.isPhone){
+      if (terms.length){
+        const here = this.q("[data-a=scope]").value === "here";
+        list = phone.entries.filter(e => {
+          if (here && !e.p.startsWith(this.cwd + "/")) return false;
+          const hay = (here ? e.p.slice(this.cwd.length) : e.p.slice(PROOT.length)).toLowerCase();
+          return terms.every(t => hay.includes(t));
+        });
+      } else list = (phone.byDir.get(this.cwd) || []).slice();
+    } else list = terms.length ? (Array.isArray(this.macSearch) ? this.macSearch.slice() : []) : this.macEntries.slice();
+    if (!$("hidden").checked) list = list.filter(e => !e.n.startsWith(".") && !(this.isPhone && terms.length && e.p.slice(PROOT.length).includes("/.")));
+    if (this.kind !== "all") list = list.filter(e => e.k === this.kind);
+    const s = this.sort;
+    const key = {name: e => e.l, size: e => e.d ? -1 : e.s, date: e => e.m, kind: e => e.k + ext(e.p), folder: e => e.par.toLowerCase()}[s.k];
+    list.sort((a, b) => {
+      if (s.k === "name" && !terms.length && a.d !== b.d) return a.d ? -1 : 1;
+      const x = key(a), y = key(b); return (x < y ? -1 : x > y ? 1 : 0) * s.dir || a.l.localeCompare(b.l);
+    });
+    return {list, terms};
+  }
+
+  icon(e, big){
+    if ($("thumbs").checked && !e.d && THUMB.has(ext(e.p))){
+      const src = this.isPhone ? `/api/thumb?t=${TOKEN}&m=${e.m}&p=${encodeURIComponent(e.p)}` : `/api/mac/thumb?t=${TOKEN}&p=${encodeURIComponent(e.p)}`;
+      return `<div class="ic"><img loading="lazy" draggable="false" src="${src}" alt="" onerror="this.parentNode.textContent='${ICON[e.k]}'"></div>`;
+    }
+    return `<div class="ic">${ICON[e.k]}</div>`;
+  }
+
+  render(){
+    const {list, terms} = this.compute(); this.shown = list;
+    const q = this.q, body = q(".body"), searching = terms.length > 0;
+    this.el.querySelectorAll(".seg button").forEach(b => b.classList.toggle("on", b.dataset.v === this.view));
+    // crumbs
+    if (searching){
+      const where = this.isPhone ? (q("[data-a=scope]").value === "here" ? "in " + esc(this.label(this.cwd)) : "on the whole phone")
+                                 : (q("[data-a=scope]").value === "home" ? "in your home folder" : "in " + esc(this.label(this.cwd)));
+      q(".crumbs").innerHTML = this.macSearch === "loading" && !this.isPhone ? "Searching…" : `<b>${list.length.toLocaleString()}</b>&nbsp;results ${where}`;
+    } else {
+      const rootLabel = this.isPhone ? "📱 Phone" : "💻 Mac";
+      let p = this.root, html = `<a data-dir="${esc(p)}">${rootLabel}</a>`;
+      const rest = this.cwd.slice(this.root.length).split("/").filter(Boolean);
+      for (const seg of rest){ p = (p === "/" ? "" : p) + "/" + seg; html += `<span>›</span><a data-dir="${esc(p)}">${esc(seg)}</a>`; }
+      q(".crumbs").innerHTML = html;
+      q(".crumbs").scrollLeft = 1e6;
+    }
+    // body
+    const rows = list.slice(0, this.limit);
+    let html = "";
+    if (this.isPhone && !phone.ok) html = `<div class="msg">${esc(phone.msg || "Connecting to phone…")}</div>`;
+    else if (this.error && !searching) html = `<div class="msg">Can’t open this folder: ${esc(this.error)}</div>`;
+    else if (!list.length) html = `<div class="msg">${searching ? (this.macSearch === "loading" ? "Searching…" : "No matches") : "Empty folder"}</div>`;
+    else if (this.view === "list"){
+      const showFolder = searching;
+      const th = (k, label, cls) => `<th class="${cls}${this.sort.k === k ? " on" : ""}" data-k="${k}">${label}${this.sort.k === k ? (this.sort.dir > 0 ? " ▲" : " ▼") : ""}</th>`;
+      html = `<table><thead><tr>${th("name", "Name", "")}${showFolder ? th("folder", "Folder", "c-folder") : ""}${th("size", "Size", "c-size")}${th("date", "Date Modified", "c-date")}</tr></thead><tbody>` +
+        rows.map((e, i) => `<tr class="row${this.selected.has(e.p) ? " sel" : ""}" data-i="${i}" draggable="true">
+          <td><div class="nm">${this.icon(e)}<span title="${esc(e.n)}">${highlight(e.n, terms)}</span></div></td>
+          ${showFolder ? `<td class="c-folder"><a data-go="${esc(e.par)}" title="${esc(this.label(e.par))}">${esc(this.label(e.par))}</a></td>` : ""}
+          <td class="c-size">${e.d ? (e.count != null ? e.count + " items" : "—") : fmtSize(e.s)}</td>
+          <td class="c-date">${e.m ? fmtDate(e.m) : ""}</td></tr>`).join("") + "</tbody></table>";
+    } else {
+      html = `<div class="grid">` + rows.map((e, i) =>
+        `<div class="tile${this.selected.has(e.p) ? " sel" : ""}" data-i="${i}" draggable="true" title="${esc(e.n)}${searching ? "\n" + esc(this.label(e.par)) : ""}">
+          ${this.icon(e, true)}<div class="tn">${highlight(e.n, terms)}</div>${searching ? `<div class="tf">${esc(this.label(e.par))}</div>` : ""}</div>`).join("") + `</div>`;
+    }
+    if (list.length > this.limit) html += `<div class="more"><button data-a="more">Show more (${(list.length - this.limit).toLocaleString()} not shown)</button></div>`;
+    body.innerHTML = html;
+    const more = body.querySelector("[data-a=more]"); if (more) more.onclick = () => { this.limit += 500; this.render(); };
+    body.querySelectorAll("th[data-k]").forEach(th => th.onclick = () => this.setSort(th.dataset.k));
+    this.footer();
+  }
+  footer(){
+    const sel = this.shown.filter(e => this.selected.has(e.p));
+    const bytes = sel.reduce((n, e) => n + (e.d ? 0 : e.s), 0), folders = sel.filter(e => e.d).length;
+    this.q(".info").textContent = sel.length
+      ? `${sel.length} selected · ${fmtSize(bytes)}${folders ? ` + ${folders} folder${folders > 1 ? "s" : ""}` : ""}  →  ${this.other.label(this.other.cwd)}`
+      : `${this.shown.length.toLocaleString()} item${this.shown.length === 1 ? "" : "s"}`;
+    this.q("[data-a=copy]").disabled = !sel.length || (this.isPhone ? false : !phone.ok) || (!this.isPhone && !phone.ok);
+    if (this.isPhone) this.q("[data-a=copy]").disabled = !sel.length || !phone.ok;
+  }
+
+  itemAt(ev){ const n = ev.target.closest("[data-i]"); return n ? {i: +n.dataset.i, e: this.shown[+n.dataset.i]} : null; }
+  onClick(ev){
+    const go = ev.target.closest("a[data-go]"); if (go){ this.go(go.dataset.go); return; }
+    const hit = this.itemAt(ev);
+    if (!hit){ if (!ev.metaKey && !ev.shiftKey){ this.selected.clear(); this.paintSel(); } return; }
+    if (ev.detail >= 2 && !ev.metaKey && !ev.shiftKey) return this.open(hit.e);
+    if (ev.shiftKey && this.lastClick >= 0){
+      const [a, b] = [Math.min(this.lastClick, hit.i), Math.max(this.lastClick, hit.i)];
+      if (!ev.metaKey) this.selected.clear();
+      for (let j = a; j <= b; j++) this.selected.add(this.shown[j].p);
+    } else if (ev.metaKey || ev.ctrlKey){
+      this.selected.has(hit.e.p) ? this.selected.delete(hit.e.p) : this.selected.add(hit.e.p); this.lastClick = hit.i;
+    } else { this.selected.clear(); this.selected.add(hit.e.p); this.lastClick = hit.i; }
+    this.paintSel();
+  }
+  // Update selection highlight without rebuilding the list (rebuilding breaks double-click).
+  paintSel(){
+    this.q(".body").querySelectorAll("[data-i]").forEach(n => n.classList.toggle("sel", this.selected.has(this.shown[+n.dataset.i].p)));
+    this.footer();
+  }
+  open(e){
+    if (e.d) return this.go(e.p);
+    if (this.isPhone) window.open(`/api/file?t=${TOKEN}&p=${encodeURIComponent(e.p)}`, "_blank");
+    else post("/api/mac/open", {path: e.p});
+  }
+  onDragStart(ev){
+    const hit = this.itemAt(ev); if (!hit) return;
+    if (!this.selected.has(hit.e.p)){ this.selected.clear(); this.selected.add(hit.e.p); this.paintSel(); }
+    ev.dataTransfer.setData("application/x-pane", JSON.stringify({side: this.side, paths: [...this.selected]}));
+    ev.dataTransfer.effectAllowed = "copy";
+  }
+  dropDir(ev){
+    const hit = this.itemAt(ev);
+    return hit && hit.e.d ? hit.e.p : this.cwd;
+  }
+  onDragOver(ev){
+    const types = [...ev.dataTransfer.types];
+    const fromOther = types.includes("application/x-pane");
+    const fromFinder = types.includes("Files") && this.isPhone;
+    if (!fromOther && !fromFinder) return;
+    ev.preventDefault(); ev.dataTransfer.dropEffect = "copy"; this.q(".body").classList.add("droptarget");
+  }
+  async onDrop(ev){
+    ev.preventDefault(); this.q(".body").classList.remove("droptarget");
+    const dir = this.dropDir(ev);
+    const raw = ev.dataTransfer.getData("application/x-pane");
+    if (raw){
+      const d = JSON.parse(raw); if (d.side === this.side) return;
+      return panes[d.side].copyAcross(d.paths, dir);
+    }
+    if (this.isPhone && ev.dataTransfer.files.length) uploadFiles([...ev.dataTransfer.files], dir);
+  }
+
+  async copyAcross(paths, destDir){
+    if (!paths.length) return;
+    if (!phone.ok) return toast("Phone isn’t connected.");
+    const dst = this.other, n = paths.length, s = n > 1 ? "s" : "";
+    toast(`Copying ${n} item${s} to ${dst.label(destDir)}…`, 0);
+    this.q("[data-a=copy]").disabled = true;
+    let r;
+    try {
+      r = this.isPhone ? await post("/api/pull", {paths, dest: destDir}) : await post("/api/push-local", {paths, dir: destDir});
+    } catch(err){ toast("Copy failed: " + err); return this.footer(); }
+    if (this.isPhone){ await dst.loadMac(); } else { await loadPhone(false); }
+    dst.render(); this.render();
+    toast(r.failed.length ? `Copied ${r.done.length}, ${r.failed.length} failed:\n${r.failed.slice(0, 3).join("\n")}`
+                          : `✓ Copied ${r.done.length} item${r.done.length > 1 ? "s" : ""} to ${dst.label(destDir)}`, 6000);
+  }
+}
+
+async function uploadFiles(files, dir){
+  let ok = 0;
+  for (let i = 0; i < files.length; i++){
+    toast(`Sending ${i + 1} of ${files.length}: ${files[i].name}…`, 0);
+    const r = await api(`/api/push?dir=${encodeURIComponent(dir)}&name=${encodeURIComponent(files[i].name)}`, {method:"POST", body: files[i]});
+    if (r.ok) ok++;
+  }
+  await loadPhone(false); panes.phone.render();
+  toast(`✓ Sent ${ok} of ${files.length} file${files.length > 1 ? "s" : ""} to ${panes.phone.label(dir)}`, 5000);
+}
+
+async function loadPhone(hard){
+  const st = await (await api("/api/status")).json();
+  HOME = st.home;
+  phone.ok = st.state === "ok"; phone.msg = st.message;
+  const p = panes.phone;
+  p.q(".dot").className = "dot " + (phone.ok ? "ok" : "bad");
+  p.q(".pname").textContent = phone.ok ? st.name : "Phone not connected";
+  if (!phone.ok) return;
+  const r = await (await api("/api/index" + (hard ? "?refresh=1" : ""))).json();
+  if (r.error && !r.entries.length){ phone.ok = false; phone.msg = r.error; return; }
+  indexPhone(r.entries);
+  if (!phone.dirs.has(p.cwd)) p.cwd = PROOT;
+}
+
+const panes = {};
+panes.mac = new Pane("mac"); panes.phone = new Pane("phone");
+for (const id of ["thumbs", "hidden"]){ const v = ls(id); if (v !== null) $(id).checked = v === "1";
+  $(id).onchange = () => { ls(id, $(id).checked ? "1" : "0"); panes.mac.render(); panes.phone.render(); }; }
+
+document.addEventListener("keydown", e => {
+  const p = activePane || panes.phone;
+  const inSearch = document.activeElement && document.activeElement.type === "search";
+  if (e.metaKey && e.key === "f"){ e.preventDefault(); const i = p.q("input[type=search]"); i.focus(); i.select(); }
+  else if (inSearch) return;
+  else if (e.metaKey && e.key === "a"){ e.preventDefault(); p.shown.slice(0, p.limit).forEach(x => p.selected.add(x.p)); p.render(); }
+  else if (e.metaKey && e.key === "ArrowUp"){ e.preventDefault(); p.up(); }
+  else if (e.metaKey && e.key === "ArrowDown"){ const s = p.shown.find(x => p.selected.has(x.p)); if (s && s.d) p.go(s.p); }
+  else if (e.metaKey && e.key === "1"){ p.view = "icons"; ls(p.side + ".view", "icons"); p.render(); }
+  else if (e.metaKey && e.key === "2"){ p.view = "list"; ls(p.side + ".view", "list"); p.render(); }
+  else if (e.key === "Escape"){ p.selected.clear(); p.render(); }
+});
+
+// Keep the server alive while this tab is open; tell it when the tab closes so it can quit.
+const ping = () => api("/api/ping", {method:"POST"}).catch(() => {});
+ping(); const pinger = setInterval(ping, 5000);
+$("quit").onclick = async () => {
+  clearInterval(pinger);
+  await api("/api/quit", {method:"POST"}).catch(() => {});
+  window.close();  // only works if the browser allows it; otherwise show a closed screen
+  document.body.innerHTML = `<div style="height:100vh;display:grid;place-items:center;text-align:center;color:var(--muted)">
+    <div><div style="font-size:18px;color:var(--text);font-weight:600;margin-bottom:6px">Phone Transfer has quit</div>
+    You can close this tab. Open Phone Transfer.app to start it again.</div></div>`;
+};
+document.addEventListener("visibilitychange", () => { if (!document.hidden) ping(); });
+addEventListener("pagehide", () => navigator.sendBeacon("/api/bye?t=" + TOKEN));
+addEventListener("pageshow", e => { if (e.persisted) ping(); });
+
+(async () => {
+  panes.phone.cwd = ls("phone.cwd") || PROOT;
+  panes.phone.render();
+  await loadPhone(false);
+  panes.mac.setPlaces(); panes.phone.setPlaces();
+  await panes.mac.go(ls("mac.cwd") || HOME + "/Downloads", false);
+  panes.phone.render(); panes.phone.activate();
+})();
+</script>
+</body>
+</html>

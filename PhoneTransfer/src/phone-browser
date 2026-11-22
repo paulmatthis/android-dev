@@ -1,0 +1,10 @@
+#!/bin/zsh
+# Start the Phone Browser server (if not already running) and open it.
+# Finds server.py next to this script (inside the app bundle).
+URL=http://127.0.0.1:8765/
+SERVER="${0:A:h}/server.py"
+if ! curl -s -o /dev/null --max-time 1 "$URL"; then
+  nohup /opt/homebrew/bin/python3 "$SERVER" >~/Library/Logs/phone-browser.log 2>&1 &
+  for i in {1..30}; do curl -s -o /dev/null --max-time 1 "$URL" && break; sleep 0.2; done
+fi
+[[ "$1" == "--no-open" ]] || open "$URL"
