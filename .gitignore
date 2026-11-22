@@ -11,3 +11,6 @@ build/
 DazzleBright/decompiled/
 DazzleBright/native/
 DazzleBright/logs/
+
+# Local notes for Claude sessions; kept on this Mac only
+HANDOFF.md
